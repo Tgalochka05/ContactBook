@@ -10,6 +10,7 @@
             <div class="col-md-6 offset-md-3">
                 <h1 class="mb-4">Загрузка XML файла</h1>
                 
+                <!-- Здесь присылаем необходимые сообщения -->
                 {% if messages %}
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags }}">{{ message }}</div>
@@ -29,6 +30,7 @@
                                 {% endfor %}
                             </div>
                         {% endif %}
+                        <!-- Доп. подсказка -->
                         <div class="form-text">Поддерживаются только файлы в формате XML</div>
                     </div>
                     

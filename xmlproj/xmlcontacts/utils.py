@@ -4,20 +4,20 @@ import xml.etree.ElementTree as ET
 from django.conf import settings
 from xml.etree.ElementTree import ParseError
 
+#Возвращает путь к директории для XML файлов контактов
 def get_contacts_xml_dir():
-    """Возвращает путь к директории для XML файлов контактов"""
     return os.path.join(settings.MEDIA_ROOT, 'contacts_xml')
 
+#Создает директорию для XML файлов контактов
 def ensure_contacts_dir():
-    """Создает директорию для XML файлов контактов"""
     contacts_dir = get_contacts_xml_dir()
     if not os.path.exists(contacts_dir):
         os.makedirs(contacts_dir)
     return contacts_dir
 
+#Генерирует уникальное имя для XML файла
 def generate_xml_filename():
-    """Генерирует уникальное имя для XML файла"""
-    return f"contacts_{uuid.uuid4().hex}.xml"
+    return f"contacts_{uuid.uuid4().hex[:8]}.xml"
 
 def save_contact_to_xml(contact_data):
     """Сохраняет контакт в XML файл"""
