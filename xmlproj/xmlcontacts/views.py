@@ -11,8 +11,8 @@ from .utils import (
     get_all_xml_files, generate_xml_filename, ensure_contacts_dir, get_contacts_xml_dir
 )
 
+#Форма для ввода контакта
 def contact_form(request):
-    """Форма для ввода контакта"""
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
@@ -27,18 +27,18 @@ def contact_form(request):
     
     return render(request, 'contact_form.html', {'form': form})
 
+#Список всех контактов из основного XML файла
 def contact_list(request):
-    """Список всех контактов из основного XML файла"""
     contacts = get_all_contacts_from_xml()
     
     context = {
         'contacts': contacts,
-        'has_contacts': len(contacts) > 0
+        'has_contacts': len(contacts) > 0 #Записываем количесвто контактов, как раз понимаем, есть ли вообще записи
     }
     return render(request, 'contact_list.html', context)
 
+#Загрузка XML файла с контактами
 def upload_xml(request):
-    """Загрузка XML файла с контактами"""
     if request.method == 'POST':
         form = UploadXMLForm(request.POST, request.FILES)
         if form.is_valid():
@@ -68,8 +68,8 @@ def upload_xml(request):
     
     return render(request, 'upload_xml.html', {'form': form})
 
+#Список всех XML файлов и их содержимого
 def xml_files_list(request):
-    """Список всех XML файлов и их содержимого"""
     xml_files = get_all_xml_files()
     
     # Для каждого файла получаем контакты
@@ -86,8 +86,8 @@ def xml_files_list(request):
     }
     return render(request, 'xml_files_list.html', context)
 
+#Просмотр содержимого конкретного XML файла
 def view_xml_file(request, filename):
-    """Просмотр содержимого конкретного XML файла"""
     contacts_dir = ensure_contacts_dir()
     file_path = os.path.join(contacts_dir, filename)
     
@@ -108,8 +108,8 @@ def view_xml_file(request, filename):
     }
     return render(request, 'xml_file_detail.html', context)
 
+#Скачивание XML файла
 def download_xml_file(request, filename):
-    """Скачивание XML файла"""
     contacts_dir = get_contacts_xml_dir()
     file_path = os.path.join(contacts_dir, filename)
     

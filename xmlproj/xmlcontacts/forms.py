@@ -23,6 +23,7 @@ class ContactForm(forms.Form):
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
     )
 
+    #Валидация данных
     def clean_name(self):
         name = self.cleaned_data['name']
         if not re.match(r'^[а-яА-Яa-zA-Z\s\-\.]+$', name):

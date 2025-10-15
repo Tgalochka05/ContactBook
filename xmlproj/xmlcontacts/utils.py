@@ -19,8 +19,8 @@ def ensure_contacts_dir():
 def generate_xml_filename():
     return f"contacts_{uuid.uuid4().hex[:8]}.xml"
 
+#Сохраняет контакт в XML файл
 def save_contact_to_xml(contact_data):
-    """Сохраняет контакт в XML файл"""
     contacts_dir = ensure_contacts_dir()
     file_path = os.path.join(contacts_dir, 'contacts.xml')  # ← Используем contacts.xml как основной файл
     
@@ -53,8 +53,8 @@ def save_contact_to_xml(contact_data):
         print(f"Error saving to XML: {e}")
         return False
 
+#Получает все контакты из основного XML файла
 def get_all_contacts_from_xml():
-    """Получает все контакты из основного XML файла"""
     contacts_dir = get_contacts_xml_dir()
     file_path = os.path.join(contacts_dir, 'contacts.xml')
     contacts = []
@@ -80,16 +80,16 @@ def get_all_contacts_from_xml():
     
     return contacts
 
+#Проверяет валидность XML файла
 def validate_xml_file(file_path):
-    """Проверяет валидность XML файла"""
     try:
         ET.parse(file_path)
         return True
     except (ParseError, ET.ParseError):
         return False
 
+#Извлекает контакты из загруженного XML файла
 def get_contacts_from_uploaded_xml(file_path):
-    """Извлекает контакты из загруженного XML файла"""
     contacts = []
     
     if not validate_xml_file(file_path):
@@ -98,8 +98,7 @@ def get_contacts_from_uploaded_xml(file_path):
     try:
         tree = ET.parse(file_path)
         root = tree.getroot()
-        
-        # Поддерживаем разные структуры XML
+
         for contact_elem in root.findall('.//Contact'):
             contact = {}
             
@@ -125,8 +124,8 @@ def get_contacts_from_uploaded_xml(file_path):
     
     return contacts
 
+#Возвращает список всех XML файлов в директории
 def get_all_xml_files():
-    """Возвращает список всех XML файлов в директории"""
     contacts_dir = ensure_contacts_dir()
     xml_files = []
     
