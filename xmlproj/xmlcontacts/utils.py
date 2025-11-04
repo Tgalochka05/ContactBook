@@ -1,8 +1,59 @@
 import os
 import uuid
+from django.db import models
 import xml.etree.ElementTree as ET
 from django.conf import settings
 from xml.etree.ElementTree import ParseError
+from .models import Contact
+
+
+#           Работа с БД         #
+
+
+#Сохраняет контакт в базу данных с проверкой на дубликаты
+def save_contact_to_db(contact_data):
+    try:
+        # Проверяем на дубликат
+        duplicate = Contact.objects.filter(
+            name=contact_data['name'],
+            phone=contact_data['phone'],
+            email=contact_data['email']
+        ).exists()
+        
+        if duplicate:
+            return False, "Контакт уже существует в базе данных"
+        
+        # Создаем новый контакт
+        contact = Contact.objects.create(
+            name=contact_data['name'],
+            phone=contact_data['phone'],
+            email=contact_data['email'],
+            address=contact_data.get('address', '')
+        )
+        return True, "Контакт успешно сохранен в базу данных"
+    
+    except Exception as e:
+        return False, f"Ошибка при сохранении в БД: {str(e)}"
+
+#Поиск контактов в базе данных
+def search_contacts_in_db(query):
+    if not query:
+        return Contact.objects.all()
+    
+    return Contact.objects.filter(
+        models.Q(name__icontains=query) |
+        models.Q(phone__icontains=query) |
+        models.Q(email__icontains=query) |
+        models.Q(address__icontains=query)
+    ).order_by('-created_at')
+
+#Получает все контакты из базы данных
+def get_all_contacts_from_db():
+    return Contact.objects.all().order_by('-created_at')
+
+
+#           Работа с XML            #
+
 
 #Возвращает путь к директории для XML файлов контактов
 def get_contacts_xml_dir():

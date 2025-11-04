@@ -1,41 +1,131 @@
 import os
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
 from django.http import FileResponse, Http404
 from django.conf import settings
 from django.contrib import messages
-from .forms import ContactForm, UploadXMLForm
+from django.db import models
+import json
+from django.core import serializers
+from .forms import ContactForm, UploadXMLForm, ContactEditForm, DataSourceForm
+from .models import Contact
 from .utils import (
     save_contact_to_xml, get_all_contacts_from_xml,
     validate_xml_file, get_contacts_from_uploaded_xml,
-    get_all_xml_files, generate_xml_filename, ensure_contacts_dir, get_contacts_xml_dir
+    get_all_xml_files, generate_xml_filename, ensure_contacts_dir, 
+    get_contacts_xml_dir, save_contact_to_db, search_contacts_in_db, get_all_contacts_from_db
 )
 
-#Форма для ввода контакта
+# Форма для ввода контакта
 def contact_form(request):
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
             contact_data = form.cleaned_data
-            if save_contact_to_xml(contact_data):
-                messages.success(request, 'Контакт успешно сохранен!')
+            save_to = contact_data.pop('save_to')  # Убираем поле выбора
+            
+            if save_to == 'db':
+                # Сохраняем в базу данных
+                success, message = save_contact_to_db(contact_data)
+                if success:
+                    messages.success(request, message)
+                else:
+                    messages.error(request, message)
                 return redirect('contact_list')
             else:
-                messages.error(request, 'Ошибка при сохранении контакта')
+                # Сохраняем в XML
+                if save_contact_to_xml(contact_data):
+                    messages.success(request, 'Контакт успешно сохранен в XML файл!')
+                    return redirect('contact_list')
+                else:
+                    messages.error(request, 'Ошибка при сохранении контакта в XML')
     else:
         form = ContactForm()
     
     return render(request, 'contact_form.html', {'form': form})
 
-#Список всех контактов из основного XML файла
+# Список всех контактов с выбором источника
 def contact_list(request):
-    contacts = get_all_contacts_from_xml()
+    source_form = DataSourceForm(request.GET or None)
+    source = request.GET.get('source', 'db') #Получаем выбранный источник данных (или 'db' по умолчанию)
+    
+    if source == 'db':
+        contacts = get_all_contacts_from_db()
+        from_db = True
+    else:
+        contacts = get_all_contacts_from_xml()
+        from_db = False
     
     context = {
         'contacts': contacts,
-        'has_contacts': len(contacts) > 0 #Записываем количесвто контактов, как раз понимаем, есть ли вообще записи
+        'has_contacts': len(contacts) > 0,
+        'source_form': source_form,
+        'from_db': from_db,
+        'current_source': source
     }
     return render(request, 'contact_list.html', context)
+
+#AJAX поиск контактов в базе данных
+def ajax_search(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest': #Если пришёл AJAX-запрос
+        query = request.GET.get('q', '').strip() #получаем запрос, при этом убирая пробелы в начале и в конце через .strip()
+        
+        if query:
+            contacts = search_contacts_in_db(query)
+            results = []
+            for contact in contacts:
+                results.append({
+                    'id': contact.id,
+                    'name': contact.name or '-',
+                    'phone': contact.phone or '-',
+                    'email': contact.email or '-',
+                    'address': contact.address or '-'
+                })
+            return JsonResponse({'contacts': results, 'query': query})
+        else:
+            # Если запрос пустой, возвращаем все контакты
+            contacts = get_all_contacts_from_db()
+            results = []
+            for contact in contacts:
+                results.append({
+                    'id': contact.id,
+                    'name': contact.name or '-',
+                    'phone': contact.phone or '-',
+                    'email': contact.email or '-',
+                    'address': contact.address or '-'
+                })
+            return JsonResponse({'contacts': results})
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+# Редактирование контакта
+def edit_contact(request, contact_id):
+    contact = get_object_or_404(Contact, id=contact_id) #Ищем контакт через contact_id
+    
+    if request.method == 'POST':
+        form = ContactEditForm(request.POST, instance=contact)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Контакт успешно обновлен!')
+            return redirect('contact_list')
+    else:
+        form = ContactEditForm(instance=contact)
+    
+    return render(request, 'edit_contact.html', {
+        'form': form,
+        'contact': contact
+    })
+
+# Удаление контакта
+def delete_contact(request, contact_id):
+    contact = get_object_or_404(Contact, id=contact_id)
+    
+    if request.method == 'POST':
+        contact.delete()
+        messages.success(request, 'Контакт успешно удален!')
+        return redirect('contact_list')
+    
+    return render(request, 'delete_contact.html', {'contact': contact})
 
 #Загрузка XML файла с контактами
 def upload_xml(request):
