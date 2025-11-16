@@ -100,14 +100,29 @@ def ajax_search(request):
 
 # Редактирование контакта
 def edit_contact(request, contact_id):
-    contact = get_object_or_404(Contact, id=contact_id) #Ищем контакт через contact_id
+    contact = get_object_or_404(Contact, id=contact_id)
     
     if request.method == 'POST':
         form = ContactEditForm(request.POST, instance=contact)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Контакт успешно обновлен!')
-            return redirect('contact_list')
+            # Проверяем на дубликаты перед сохранением
+            name = form.cleaned_data['name']
+            phone = form.cleaned_data['phone']
+            email = form.cleaned_data['email']
+            
+            # Ищем дубликаты (исключая текущий контакт)
+            duplicate = Contact.objects.filter(
+                name=name,
+                phone=phone,
+                email=email
+            ).exclude(id=contact_id).exists()
+            
+            if duplicate:
+                messages.error(request, 'Контакт с такими данными уже существует!')
+            else:
+                form.save()
+                messages.success(request, 'Контакт успешно обновлен!')
+                return redirect('contact_list')
     else:
         form = ContactEditForm(instance=contact)
     
