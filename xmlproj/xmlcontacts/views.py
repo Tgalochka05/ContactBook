@@ -119,6 +119,7 @@ def edit_contact(request, contact_id):
             
             if duplicate:
                 messages.error(request, 'Контакт с такими данными уже существует!')
+                return redirect('contact_list')
             else:
                 form.save()
                 messages.success(request, 'Контакт успешно обновлен!')
@@ -239,4 +240,5 @@ def download_xml_file(request, filename):
         
     except Exception as e:
         messages.error(request, f'Ошибка при скачивании файла: {str(e)}')
+
         return redirect('xml_files_list')
